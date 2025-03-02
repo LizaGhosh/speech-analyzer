@@ -2,7 +2,7 @@ services:
   - type: web
     name: speech-practice-platform
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: bash build.sh
     startCommand: gunicorn app:app -c gunicorn_config.py
     envVars:
       - key: GEMINI_API_KEY
