@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Practice Platform</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-microphone-alt"></i> Speech Practice Platform</h1>
+            <p class="subtitle">Generate prompts, practice speaking, and get detailed feedback</p>
+        </header>
+
+        <main>
+            <section class="practice-options">
+                <h2>Choose Your Practice Method</h2>
+                <div class="practice-methods">
+                    <div class="method-option active" data-method="generate-prompt">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>Use Generated Prompt</h3>
+                        <p>Get a practice paragraph based on your chosen topic</p>
+                    </div>
+                    <div class="method-option" data-method="free-speech">
+                        <i class="fas fa-microphone"></i>
+                        <h3>Record Directly</h3>
+                        <p>Record your own speech without a prompt</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="prompt-section" class="prompt-section">
+                <h2>Step 1: Generate a Practice Prompt</h2>
+                <form id="prompt-form">
+                    <div class="input-group">
+                        <label for="topic">Enter a topic:</label>
+                        <input type="text" id="topic" name="topic" placeholder="e.g., climate change, technology, education..." required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="speaking-context">Speaking Context:</label>
+                        <select id="speaking-context" name="speaking-context" class="form-control">
+                            <option value="general">General Speech</option>
+                            <option value="interview">Interview</option>
+                            <option value="debate">Debate/Public Speaking</option>
+                            <option value="storytelling">Storytelling</option>
+                            <option value="business_presentation">Business Presentation</option>
+                            <option value="casual">Casual Conversation</option>
+                            <option value="teaching">Teaching/Training</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Generate Paragraph</button>
+                </form>
+                
+                <div id="prompt-result" class="prompt-result hidden">
+                    <h3>Your Practice Paragraph:</h3>
+                    <div id="paragraph-display" class="paragraph-box"></div>
+                </div>
+            </section>
+
+            <section id="free-speech-section" class="free-speech-section hidden">
+                <h2>Free Speech Practice</h2>
+                <p class="instructions">Record yourself speaking freely in your chosen context.</p>
+                
+                <div class="input-group">
+                    <label for="free-speaking-context">Speaking Context:</label>
+                    <select id="free-speaking-context" name="free-speaking-context" class="form-control">
+                        <option value="general">General Speech</option>
+                        <option value="interview">Interview</option>
+                        <option value="debate">Debate/Public Speaking</option>
+                        <option value="storytelling">Storytelling</option>
+                        <option value="business_presentation">Business Presentation</option>
+                        <option value="casual">Casual Conversation</option>
+                        <option value="teaching">Teaching/Training</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="speech-topic">What will you talk about? (Optional)</label>
+                    <input type="text" id="speech-topic" name="speech-topic" placeholder="Briefly describe your speech topic">
+                </div>
+
+                <div class="controls">
+                    <button id="free-record-btn" class="btn btn-record">
+                        <i class="fas fa-microphone"></i> Start Recording
+                    </button>
+                    <button id="free-stop-btn" class="btn btn-stop hidden">
+                        <i class="fas fa-stop-circle"></i> Stop Recording
+                    </button>
+                    <span id="free-recording-timer" class="timer hidden">00:00</span>
+                </div>
+                
+                <div id="free-audio-preview" class="audio-preview hidden">
+                    <h3>Preview Your Recording:</h3>
+                    <audio id="free-audio-playback" controls></audio>
+                    <div class="action-buttons">
+                        <button id="free-retry-btn" class="btn btn-secondary">Record Again</button>
+                        <button id="free-submit-btn" class="btn btn-primary">Analyze My Speech</button>
+                    </div>
+                </div>
+                
+                <div id="free-loading-indicator" class="loading-indicator hidden">
+                    <div class="spinner"></div>
+                    <p>Analyzing your speech...</p>
+                </div>
+            </section>
+            
+            <section id="recording-section" class="recording-section hidden">
+                <h2>Step 2: Record Your Speech</h2>
+                <p class="instructions">Read the paragraph above aloud. Try to speak clearly and expressively.</p>
+                
+                <div class="controls">
+                    <button id="record-btn" class="btn btn-record">
+                        <i class="fas fa-microphone"></i> Start Recording
+                    </button>
+                    <button id="stop-btn" class="btn btn-stop hidden">
+                        <i class="fas fa-stop-circle"></i> Stop Recording
+                    </button>
+                    <span id="recording-timer" class="timer hidden">00:00</span>
+                </div>
+                
+                <div id="audio-preview" class="audio-preview hidden">
+                    <h3>Preview Your Recording:</h3>
+                    <audio id="audio-playback" controls></audio>
+                    <div class="action-buttons">
+                        <button id="retry-btn" class="btn btn-secondary">Record Again</button>
+                        <button id="submit-btn" class="btn btn-primary">Analyze My Speech</button>
+                    </div>
+                </div>
+                
+                <div id="loading-indicator" class="loading-indicator hidden">
+                    <div class="spinner"></div>
+                    <p>Analyzing your speech...</p>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>&copy; 2025 Speech Practice Platform</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/recorder.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

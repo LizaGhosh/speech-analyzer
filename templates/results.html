@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Analysis Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Additional inline styles to ensure score bars display correctly */
+        .score-bar {
+            height: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+        
+        .score-fill {
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            border-radius: 5px;
+        }
+        
+        .high-score-fill {
+            background: linear-gradient(to right, #2ecc71, #27ae60);
+        }
+        
+        .medium-score-fill {
+            background: linear-gradient(to right, #f39c12, #e67e22);
+        }
+        
+        .low-score-fill {
+            background: linear-gradient(to right, #e74c3c, #c0392b);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-chart-bar"></i> Speech Analysis Results</h1>
+            <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Try Another Prompt</a>
+        </header>
+
+        <main class="results-main">
+            <section class="score-section">
+                <h2>Your Speaking Performance</h2>
+                
+                <div class="overall-score">
+                    <div class="score-circle {% if scores.overall < 60 %}low{% elif scores.overall < 80 %}medium{% else %}high{% endif %}">
+                        <span class="score-value">{{ scores.overall }}</span>
+                        <span class="score-label">OVERALL</span>
+                    </div>
+                </div>
+                
+                <div class="detailed-scores">
+                    <div class="score-card {% if scores.modulation < 60 %}low{% elif scores.modulation < 80 %}medium{% else %}high{% endif %}">
+                        <h3>Voice Modulation</h3>
+                        <div class="score-bar">
+                            <div class="score-fill {% if scores.modulation < 60 %}low-score-fill{% elif scores.modulation < 80 %}medium-score-fill{% else %}high-score-fill{% endif %}" style="width: {{ scores.modulation }}%;"></div>
+                        </div>
+                        <span class="score-number">{{ scores.modulation }}/100</span>
+                    </div>
+                    
+                    <div class="score-card {% if scores.pauses < 60 %}low{% elif scores.pauses < 80 %}medium{% else %}high{% endif %}">
+                        <h3>Pauses</h3>
+                        <div class="score-bar">
+                            <div class="score-fill {% if scores.pauses < 60 %}low-score-fill{% elif scores.pauses < 80 %}medium-score-fill{% else %}high-score-fill{% endif %}" style="width: {{ scores.pauses }}%;"></div>
+                        </div>
+                        <span class="score-number">{{ scores.pauses }}/100</span>
+                    </div>
+                    
+                    <div class="score-card {% if scores.expression < 60 %}low{% elif scores.expression < 80 %}medium{% else %}high{% endif %}">
+                        <h3>Expression</h3>
+                        <div class="score-bar">
+                            <div class="score-fill {% if scores.expression < 60 %}low-score-fill{% elif scores.expression < 80 %}medium-score-fill{% else %}high-score-fill{% endif %}" style="width: {{ scores.expression }}%;"></div>
+                        </div>
+                        <span class="score-number">{{ scores.expression }}/100</span>
+                    </div>
+                    
+                    <div class="score-card {% if scores.accuracy < 60 %}low{% elif scores.accuracy < 80 %}medium{% else %}high{% endif %}">
+                        <h3>Clarity</h3>
+                        <div class="score-bar">
+                            <div class="score-fill {% if scores.accuracy < 60 %}low-score-fill{% elif scores.accuracy < 80 %}medium-score-fill{% else %}high-score-fill{% endif %}" style="width: {{ scores.accuracy }}%;"></div>
+                        </div>
+                        <span class="score-number">{{ scores.accuracy }}/100</span>
+                    </div>
+                    
+                    <div class="score-card {% if scores.pace < 60 %}low{% elif scores.pace < 80 %}medium{% else %}high{% endif %}">
+                        <h3>Pace</h3>
+                        <div class="score-bar">
+                            <div class="score-fill {% if scores.pace < 60 %}low-score-fill{% elif scores.pace < 80 %}medium-score-fill{% else %}high-score-fill{% endif %}" style="width: {{ scores.pace }}%;"></div>
+                        </div>
+                        <span class="score-number">{{ scores.pace }}/100</span>
+                    </div>
+                </div>
+                
+                <div class="score-chart">
+                    <canvas id="scoresRadarChart"></canvas>
+                </div>
+            </section>
+            
+            <section class="recommendations-section">
+                <h2>Personalized Feedback</h2>
+                
+                <div class="feedback-tabs">
+                    <button class="tab-btn active" data-tab="positive">Strengths</button>
+                    <button class="tab-btn" data-tab="improvement">Areas to Improve</button>
+                </div>
+                
+                <div id="positive-tab" class="tab-content active">
+                    {% for rec in recommendations %}
+                        {% if rec.type == 'positive' %}
+                            <div class="feedback-item positive">
+                                <i class="fas fa-check-circle"></i>
+                                <p>{{ rec.text }}</p>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                
+                <div id="improvement-tab" class="tab-content">
+                    {% for rec in recommendations %}
+                        {% if rec.type == 'improvement' %}
+                            <div class="feedback-item improvement">
+                                <i class="fas fa-lightbulb"></i>
+                                <p>{{ rec.text }}</p>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </section>
+            
+            <section class="analysis-section">
+                <h2>Detailed Speech Analysis</h2>
+                
+                <div class="analysis-tabs">
+                    <button class="tab-btn active" data-tab="transcription">Transcription</button>
+                    <button class="tab-btn" data-tab="waveform">Waveform</button>
+                    <button class="tab-btn" data-tab="pitch">Pitch Analysis</button>
+                    <button class="tab-btn" data-tab="volume">Volume Analysis</button>
+                    <button class="tab-btn" data-tab="pace">Speaking Rate</button>
+                </div>
+                
+                <div id="transcription-tab" class="tab-content active">
+                    <div class="transcription-comparison">
+                        {% if not is_free_speech %}
+                        <div class="original">
+                            <h3>Original Text:</h3>
+                            <div class="text-box">{{ paragraph }}</div>
+                        </div>
+                        {% else %}
+                        <div class="original">
+                            <h3>{% if speech_topic %}Your Topic:{% else %}Free Speech:{% endif %}</h3>
+                            <div class="text-box">{% if speech_topic %}{{ speech_topic }}{% else %}Free speech practice without a specific topic.{% endif %}</div>
+                        </div>
+                        {% endif %}
+                        <div class="transcribed">
+                            <h3>Your Speech (Transcribed):</h3>
+                            <div class="text-box">{{ transcription }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="waveform-tab" class="tab-content">
+                    {% if charts_data.image_paths.waveform is defined %}
+                        <img src="{{ url_for('static', filename=charts_data.image_paths.waveform) }}" alt="Audio Waveform" class="analysis-image">
+                    {% else %}
+                        <p class="analysis-caption">Waveform visualization not available.</p>
+                    {% endif %}
+                    <p class="analysis-caption">
+                        The waveform shows the amplitude of your speech over time. Larger waves indicate louder speech.
+                        Red highlights show pauses in your speech.
+                    </p>
+                </div>
+                
+                <div id="pitch-tab" class="tab-content">
+                    {% if charts_data.image_paths.pitch_contour is defined %}
+                        <img src="{{ url_for('static', filename=charts_data.image_paths.pitch_contour) }}" alt="Pitch Contour" class="analysis-image">
+                    {% else %}
+                        <p class="analysis-caption">Pitch contour visualization not available.</p>
+                    {% endif %}
+                    <p class="analysis-caption">
+                        The pitch contour shows how the tone of your voice changes throughout your speech. More variation indicates better modulation.
+                        Blue highlights show areas with higher pitch variation.
+                    </p>
+                </div>
+                
+                <div id="volume-tab" class="tab-content">
+                    {% if charts_data.image_paths.volume is defined %}
+                        <img src="{{ url_for('static', filename=charts_data.image_paths.volume) }}" alt="Volume Analysis" class="analysis-image">
+                    {% else %}
+                        <p class="analysis-caption">Volume analysis visualization not available.</p>
+                    {% endif %}
+                    <p class="analysis-caption">
+                        This chart shows your speech volume over time. Consistent volume with some variation is ideal.
+                        Red highlights show areas of potentially low volume that may be difficult to hear.
+                    </p>
+                </div>
+                
+                <div id="pace-tab" class="tab-content">
+                    {% if charts_data.image_paths.pace is defined %}
+                        <img src="{{ url_for('static', filename=charts_data.image_paths.pace) }}" alt="Speaking Rate" class="analysis-image">
+                    {% else %}
+                        <p class="analysis-caption">Speaking rate visualization not available.</p>
+                    {% endif %}
+                    <p class="analysis-caption">
+                        This chart shows your speaking rate in words per minute (WPM) compared to the ideal range for
+                        your speaking context.
+                    </p>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>&copy; 2025 Speech Practice Platform</p>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize tab functionality
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Get the tab group (parent of buttons)
+                const tabGroup = this.parentElement;
+                
+                // Remove active class from all buttons in this group
+                tabGroup.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Get the tab to show based on data-tab attribute
+                const tabToShow = this.getAttribute('data-tab');
+                
+                // Find the tab content container (next sibling of tab group or parent's container)
+                let tabContentContainer = tabGroup.nextElementSibling;
+                while (tabContentContainer && !tabContentContainer.classList.contains('tab-content')) {
+                    tabContentContainer = tabContentContainer.nextElementSibling;
+                }
+                
+                // If we didn't find it as next sibling, look for all tab-contents in the parent section
+                if (!tabContentContainer || !tabContentContainer.classList.contains('tab-content')) {
+                    const parentSection = tabGroup.closest('section');
+                    const allTabContents = parentSection.querySelectorAll('.tab-content');
+                    
+                    // Hide all tab contents
+                    allTabContents.forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // Show the selected tab content
+                    const selectedContent = parentSection.querySelector(`#${tabToShow}-tab`);
+                    if (selectedContent) {
+                        selectedContent.classList.add('active');
+                    }
+                } else {
+                    // We found the first tab content, now hide all and show the selected one
+                    let currentTabContent = tabContentContainer;
+                    while (currentTabContent && currentTabContent.classList.contains('tab-content')) {
+                        currentTabContent.classList.remove('active');
+                        currentTabContent = currentTabContent.nextElementSibling;
+                    }
+                    
+                    document.getElementById(`${tabToShow}-tab`).classList.add('active');
+                }
+            });
+        });
+        
+        // Initialize radar chart for scores
+        const scoresCtx = document.getElementById('scoresRadarChart').getContext('2d');
+        const scoresChart = new Chart(scoresCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Modulation', 'Pauses', 'Expression', 'Clarity', 'Pace', 'Overall'],
+                datasets: [{
+                    label: 'Your Performance',
+                    data: {{ charts_data.scores }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
