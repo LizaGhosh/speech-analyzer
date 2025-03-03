@@ -166,6 +166,10 @@ def upload_audio():
         session['speaking_context'] = speaking_context  # Save context in session
         
         print("Results stored in session")
+
+        gc.collect()  # Force garbage collection
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+        
         return jsonify({
             'success': True, 
             'redirect': '/results'
