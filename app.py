@@ -167,9 +167,9 @@ def upload_audio():
         
         print("Results stored in session")
 
-        gc.collect()  # Force garbage collection
-        torch.cuda.empty_cache() if torch.cuda.is_available() else None
-        
+        # gc.collect()  # Force garbage collection
+        # torch.cuda.empty_cache() if torch.cuda.is_available() else None
+
         return jsonify({
             'success': True, 
             'redirect': '/results'
@@ -180,6 +180,7 @@ def upload_audio():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
+
 
 @app.route('/results')
 def results():
@@ -203,6 +204,7 @@ def results():
         is_free_speech=is_free_speech,
         speech_topic=speech_topic
     )
+
 
 if __name__ == '__main__':
     app.run(debug=True)

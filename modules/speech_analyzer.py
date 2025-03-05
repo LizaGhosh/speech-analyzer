@@ -14,19 +14,60 @@ import base64
 from io import BytesIO
 from difflib import SequenceMatcher
 import re
+import ssl
+import certifi
+
+# Add this near the top of your script to fix SSL issues
+ssl._create_default_https_context = ssl._create_unverified_context
 
 class SpeechAnalyzer:
     """Enhanced speech analysis system that uses Wav2Vec2.0 with context-aware feedback."""
     
+    # def __init__(self, model_name="facebook/wav2vec2-base-960h"):
+    #     """Initialize the analyzer with the specified model."""
+    #     # Load Wav2Vec2.0 components
+    #     self.processor = Wav2Vec2Processor.from_pretrained(model_name)
+    #     self.model = Wav2Vec2ForCTC.from_pretrained(model_name)
+        
+    #     # Set device (use CUDA if available)
+    #     self.device = "cuda" if torch.cuda.is_available() else "cpu"
+    #     self.model.to(self.device)
+        
+    #     # Initialize variables
+    #     self.audio_data = None
+    #     self.sample_rate = None
+    #     self.features = {}
+    #     self.scores = {}
+    #     self.transcription = None
+    #     self.reference_text = None
+    #     self.context = "general"  # Default context
+
     def __init__(self, model_name="facebook/wav2vec2-base-960h"):
         """Initialize the analyzer with the specified model."""
-        # Load Wav2Vec2.0 components
-        self.processor = Wav2Vec2Processor.from_pretrained(model_name)
-        self.model = Wav2Vec2ForCTC.from_pretrained(model_name)
+        # We'll keep the model_name parameter for backward compatibility,
+        # but we'll use Whisper instead of Wav2Vec2
+        
+        try:
+            # Import Whisper (only when needed)
+            import whisper
+            
+            # Load the Whisper model (use "base" model by default)
+            self.whisper_model = whisper.load_model("base")
+            print("Loaded Whisper base model for transcription")
+            self.use_whisper = True
+        except Exception as e:
+            print(f"Could not load Whisper model: {str(e)}")
+            print("Falling back to Wav2Vec2 for transcription")
+            
+            # Fall back to Wav2Vec2 if Whisper isn't available
+            self.processor = Wav2Vec2Processor.from_pretrained(model_name)
+            self.model = Wav2Vec2ForCTC.from_pretrained(model_name)
+            self.use_whisper = False
         
         # Set device (use CUDA if available)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model.to(self.device)
+        if not self.use_whisper:
+            self.model.to(self.device)
         
         # Initialize variables
         self.audio_data = None
@@ -113,24 +154,78 @@ class SpeechAnalyzer:
         self.audio_data, self.sample_rate = librosa.load(file_path, sr=16000)  # Wav2Vec2 expects 16kHz
         return self
     
+    # def transcribe_audio(self):
+    #     """Transcribe the audio using Wav2Vec2.0."""
+    #     if self.audio_data is None:
+    #         raise ValueError("No audio loaded. Call load_audio() first.")
+        
+    #     inputs = self.processor(self.audio_data, sampling_rate=16000, return_tensors="pt", padding=True)
+    #     inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        
+    #     with torch.no_grad():
+    #         logits = self.model(**inputs).logits
+        
+    #     # Get predicted ids
+    #     predicted_ids = torch.argmax(logits, dim=-1)
+        
+    #     # Convert ids to text
+    #     self.transcription = self.processor.batch_decode(predicted_ids)[0]
+    #     return self.transcription
+    
     def transcribe_audio(self):
-        """Transcribe the audio using Wav2Vec2.0."""
+        """Transcribe the audio using Whisper or Wav2Vec2."""
         if self.audio_data is None:
             raise ValueError("No audio loaded. Call load_audio() first.")
         
-        inputs = self.processor(self.audio_data, sampling_rate=16000, return_tensors="pt", padding=True)
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        if self.use_whisper:
+            try:
+                # For Whisper, we need to save the loaded audio to a temporary file
+                import tempfile
+                import soundfile as sf
+                
+                # Create temporary file
+                temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
+                temp_path = temp_file.name
+                temp_file.close()
+                
+                # Save audio data to the temporary file
+                sf.write(temp_path, self.audio_data, self.sample_rate)
+                
+                # Transcribe with Whisper
+                result = self.whisper_model.transcribe(temp_path)
+                self.transcription = result["text"]
+                
+                # Clean up temporary file
+                import os
+                os.unlink(temp_path)
+                
+            except Exception as e:
+                print(f"Error transcribing with Whisper: {str(e)}")
+                if not hasattr(self, 'processor') or not hasattr(self, 'model'):
+                    raise ValueError("Whisper failed and Wav2Vec2 fallback not available")
+                
+                # Fall back to Wav2Vec2 if Whisper fails
+                print("Falling back to Wav2Vec2 for transcription")
+                self.use_whisper = False
+                
+                # Continue to Wav2Vec2 transcription
         
-        with torch.no_grad():
-            logits = self.model(**inputs).logits
+        # Use Wav2Vec2 if Whisper is not available or failed
+        if not self.use_whisper:
+            inputs = self.processor(self.audio_data, sampling_rate=16000, return_tensors="pt", padding=True)
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            
+            with torch.no_grad():
+                logits = self.model(**inputs).logits
+            
+            # Get predicted ids
+            predicted_ids = torch.argmax(logits, dim=-1)
+            
+            # Convert ids to text
+            self.transcription = self.processor.batch_decode(predicted_ids)[0]
         
-        # Get predicted ids
-        predicted_ids = torch.argmax(logits, dim=-1)
-        
-        # Convert ids to text
-        self.transcription = self.processor.batch_decode(predicted_ids)[0]
         return self.transcription
-    
+
     def set_reference_text(self, text):
         """Set the reference text to compare with transcription."""
         self.reference_text = text
